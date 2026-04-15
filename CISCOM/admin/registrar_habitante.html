@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registrar Habitante | Panel Líder</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #f3f4f6; margin:0; display:flex; }
+    .sidebar { width:260px; background:#0f766e; color:white; min-height:100vh; padding:24px 16px; position:fixed; }
+    .main-content { margin-left:260px; padding:32px 40px; width:calc(100% - 260px); }
+    .form-container { background:white; border-radius:20px; padding:32px; max-width:800px; box-shadow:0 4px 12px rgba(0,0,0,0.05); }
+    h2 { color:#1f2937; margin-bottom:24px; }
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    .full-width { grid-column: span 2; }
+    label { font-weight:500; display:block; margin-bottom:6px; }
+    input, select, textarea { width:100%; padding:10px 14px; border:1px solid #d1d5db; border-radius:8px; }
+    .btn { background:#0f766e; color:white; border:none; padding:14px 28px; border-radius:30px; font-weight:600; cursor:pointer; margin-top:24px; }
+    .back-link { display:inline-block; margin-top:20px; color:#0f766e; }
+  </style>
+</head>
+<body>
+<div class="sidebar">
+  <div class="logo">🌱 Panel Líder</div>
+  <nav>
+    <a href="dashboard.html">📊 Dashboard</a>
+    <a href="registrar_habitante.html" class="active">👥 Registrar Habitante</a>
+    <a href="registrar_donacion.html">🎁 Donación</a>
+    <a href="gestionar_servicios.html">📍 Servicios</a>
+    <a href="generar_informe.html">📄 Informe</a>
+  </nav>
+</div>
+<div class="main-content">
+  <div class="form-container">
+    <h2>➕ Registro de habitante</h2>
+    <form id="habitanteForm">
+      <div class="form-grid">
+        <div><label>Nombre completo *</label><input type="text" name="nombre_completo" required></div>
+        <div><label>Tipo documento</label>
+          <select name="tipo_documento"><option>CC</option><option>TI</option><option>CE</option><option>PA</option></select>
+        </div>
+        <div><label>Número documento *</label><input type="text" name="numero_documento" required></div>
+        <div><label>Fecha nacimiento</label><input type="date" name="fecha_nacimiento"></div>
+        <div><label>Género</label><select name="genero"><option>M</option><option>F</option><option>Otro</option></select></div>
+        <div><label>Teléfono</label><input type="tel" name="telefono"></div>
+        <div class="full-width"><label>Dirección</label><input type="text" name="direccion"></div>
+        <div><label>Sector</label><input type="text" name="sector" value="" id="sectorInput"></div>
+        <div><label>Tipo persona</label>
+          <select name="tipo_persona">
+            <option>estudiante</option><option>empleado</option><option>madre_cabeza</option><option>adulto_mayor</option><option>discapacitado</option><option>otro</option>
+          </select>
+        </div>
+        <div><label>Puntaje Sisbén</label><input type="number" step="0.01" name="puntaje_sisben"></div>
+        <div><label>¿Desplazado?</label><select name="es_desplazado"><option value="0">No</option><option value="1">Sí</option></select></div>
+        <div><label>Víctima conflicto</label><select name="es_victima_conflicto"><option value="0">No</option><option value="1">Sí</option></select></div>
+        <div><label>Nivel vulnerabilidad</label>
+          <select name="nivel_vulnerabilidad"><option value="alta">Alta</option><option value="media" selected>Media</option><option value="baja">Baja</option></select>
+        </div>
+      </div>
+      <button type="submit" class="btn">Guardar habitante</button>
+      <div id="mensaje" style="margin-top:16px;"></div>
+    </form>
+    <a href="dashboard.html" class="back-link">← Volver al dashboard</a>
+  </div>
+</div>
+<script>
+  const liderId = localStorage.getItem('liderId');
+  if (!liderId) window.location.href = 'login.html';
+  document.getElementById('sectorInput').value = localStorage.getItem('liderSector') || '';
+
+  document.getElementById('habitanteForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    data.registrado_por = liderId;
+    // Convertir booleanos
+    data.es_desplazado = data.es_desplazado === '1' ? 1 : 0;
+    data.es_victima_conflicto = data.es_victima_conflicto === '1' ? 1 : 0;
+
+    const res = await fetch('../api/habitantes.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    const result = await res.json();
+    document.getElementById('mensaje').textContent = result.message;
+    if (result.success) e.target.reset();
+  });
+</script>
+</body>
+</html>

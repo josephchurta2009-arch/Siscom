@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Donaciones · Comunidad Viva</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Inter',sans-serif; background:#f9fafb; }
+    .container { max-width:1000px; margin:0 auto; padding:20px; }
+    header { background:white; padding:20px 0; box-shadow:0 1px 3px rgba(0,0,0,0.05); margin-bottom:30px; }
+    .header-content { display:flex; justify-content:space-between; align-items:center; }
+    .logo { font-size:1.6rem; font-weight:700; color:#0f766e; }
+    table { width:100%; background:white; border-radius:16px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.05); }
+    th { background:#0f766e; color:white; padding:16px; text-align:left; }
+    td { padding:14px 16px; border-bottom:1px solid #e5e7eb; }
+    tr:last-child td { border-bottom:none; }
+    .badge { background:#e0f2fe; color:#0369a1; padding:4px 10px; border-radius:20px; font-size:0.8rem; }
+    .back-link { display:inline-block; margin-top:30px; color:#0f766e; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container header-content">
+      <div class="logo">🌱 ComunidadViva</div>
+      <nav><a href="index.html">← Inicio</a></nav>
+    </div>
+  </header>
+  <main class="container">
+    <h2 style="margin-bottom:24px;">🎁 Donaciones recibidas en la comunidad</h2>
+    <div id="tablaContainer">Cargando...</div>
+    <a href="index.html" class="back-link">← Volver al inicio</a>
+  </main>
+  <script>
+    async function cargarDonaciones() {
+      try {
+        const res = await fetch('api/donaciones.php?public=1');
+        const donaciones = await res.json();
+        if (!donaciones.length) {
+          document.getElementById('tablaContainer').innerHTML = '<p>No hay donaciones registradas aún.</p>';
+          return;
+        }
+        let html = `<table><thead><tr><th>Fecha</th><th>Donante</th><th>Tipo</th><th>Cantidad</th><th>Distribución</th></tr></thead><tbody>`;
+        donaciones.forEach(d => {
+          html += `<tr>
+            <td>${d.fecha_donacion}</td>
+            <td>${d.nombre_donante || 'Anónimo'}</td>
+            <td><span class="badge">${d.tipo_donacion}</span></td>
+            <td>${d.cantidad || '-'} ${d.unidad_medida || ''}</td>
+            <td>${d.como_se_repartio || 'No especificado'}</td>
+          </tr>`;
+        });
+        html += '</tbody></table>';
+        document.getElementById('tablaContainer').innerHTML = html;
+      } catch(e) {
+        document.getElementById('tablaContainer').innerHTML = 'Error al cargar los datos.';
+      }
+    }
+    cargarDonaciones();
+  </script>
+</body>
+</html>
