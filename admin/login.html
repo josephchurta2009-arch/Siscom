@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acceso Líder | Comunidad Viva</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(145deg, #0f766e 0%, #0d9488 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .login-card {
+      background: white;
+      border-radius: 24px;
+      padding: 40px 32px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+    }
+    .logo {
+      text-align: center;
+      font-size: 28px;
+      font-weight: 700;
+      color: #0f766e;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #6b7280;
+      margin-bottom: 32px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: #374151;
+    }
+    input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 12px;
+      font-size: 16px;
+      transition: border 0.2s;
+    }
+    input:focus {
+      outline: none;
+      border-color: #0f766e;
+    }
+    .btn {
+      width: 100%;
+      background: #0f766e;
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn:hover {
+      background: #0e6b63;
+    }
+    .error-message {
+      color: #dc2626;
+      font-size: 14px;
+      margin-top: 12px;
+      text-align: center;
+    }
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 24px;
+      color: #6b7280;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <div class="logo">🌱 ComunidadViva</div>
+    <div class="subtitle">Acceso exclusivo para líderes comunitarios</div>
+    <form id="loginForm">
+      <div class="form-group">
+        <label>Correo electrónico</label>
+        <input type="email" id="email" placeholder="lider@comunidad.org" required>
+      </div>
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="password" placeholder="••••••••" required>
+      </div>
+      <button type="submit" class="btn">Ingresar al panel</button>
+      <div id="errorMsg" class="error-message"></div>
+    </form>
+    <a href="../index.html" class="back-link">← Volver al inicio</a>
+  </div>
+
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const errorDiv = document.getElementById('errorMsg');
+
+      try {
+        const response = await fetch('api/api/auth.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          // Guardar token o sesión (simplificado: guardar en localStorage)
+          localStorage.setItem('liderId', data.lider.id);
+          localStorage.setItem('liderNombre', data.lider.nombre);
+          localStorage.setItem('liderSector', data.lider.sector);
+          window.location.href = '../dashboard.html';
+        } else {
+          errorDiv.textContent = data.message || 'Credenciales incorrectas';
+        }
+      } catch (err) {
+        errorDiv.textContent = 'Error de conexión. Intente más tarde.';
+      }
+    });
+  </script>
+</body>
+</html>

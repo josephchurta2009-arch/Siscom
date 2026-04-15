@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registrar Donación | Panel Líder</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    /* Mismos estilos base que registrar_habitante.html */
+    body { font-family: 'Inter', sans-serif; background: #f3f4f6; margin:0; display:flex; }
+    .sidebar { width:260px; background:#0f766e; color:white; min-height:100vh; padding:24px 16px; position:fixed; }
+    .sidebar nav a { display:block; color:#e0f2fe; text-decoration:none; padding:12px 16px; border-radius:8px; margin-bottom:6px; font-weight:500; }
+    .sidebar nav a:hover, .sidebar nav a.active { background:#0a5c55; color:white; }
+    .main-content { margin-left:260px; padding:32px 40px; width:calc(100% - 260px); }
+    .form-container { background:white; border-radius:20px; padding:32px; max-width:700px; box-shadow:0 4px 12px rgba(0,0,0,0.05); }
+    h2 { color:#1f2937; margin-bottom:24px; }
+    .form-group { margin-bottom:20px; }
+    label { font-weight:500; display:block; margin-bottom:6px; }
+    input, select, textarea { width:100%; padding:10px 14px; border:1px solid #d1d5db; border-radius:8px; }
+    textarea { min-height:100px; }
+    .btn { background:#0f766e; color:white; border:none; padding:14px 28px; border-radius:30px; font-weight:600; cursor:pointer; margin-top:10px; }
+  </style>
+</head>
+<body>
+<div class="sidebar">
+  <div class="logo">🌱 Panel Líder</div>
+  <nav>
+    <a href="../dashboard.html">📊 Dashboard</a>
+    <a href="registrar_habitante.html">👥 Habitante</a>
+    <a href="registrar_donacion.html" class="active">🎁 Donación</a>
+    <a href="gestionar_servicios.html">📍 Servicios</a>
+    <a href="generar_informe.html">📄 Informe</a>
+  </nav>
+</div>
+<div class="main-content">
+  <div class="form-container">
+    <h2>🎁 Registrar nueva donación</h2>
+    <form id="donacionForm">
+      <div class="form-group">
+        <label>Nombre del donante / entidad</label>
+        <input type="text" name="nombre_donante" required>
+      </div>
+      <div class="form-group">
+        <label>Tipo de donación *</label>
+        <select name="tipo_donacion" required>
+          <option value="alimentos">Alimentos</option>
+          <option value="ropa">Ropa</option>
+          <option value="medicamentos">Medicamentos</option>
+          <option value="dinero">Dinero</option>
+          <option value="utiles">Útiles escolares</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Cantidad (ej: 50, 100.5)</label>
+        <input type="number" step="0.01" name="cantidad">
+      </div>
+      <div class="form-group">
+        <label>Unidad de medida (kg, unidades, paquetes, $)</label>
+        <input type="text" name="unidad_medida" placeholder="ej: kg, unidades">
+      </div>
+      <div class="form-group">
+        <label>Descripción detallada</label>
+        <textarea name="descripcion" placeholder="Detalle de los artículos..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Fecha de donación</label>
+        <input type="date" name="fecha_donacion" required>
+      </div>
+      <div class="form-group">
+        <label>¿Cómo se repartió? (distribución)</label>
+        <textarea name="como_se_repartio" placeholder="Describa cómo y a quiénes se entregó..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Beneficiarios estimados</label>
+        <input type="number" name="beneficiarios_estimados" min="0">
+      </div>
+      <button type="submit" class="btn">Registrar donación</button>
+      <div id="mensaje" style="margin-top:16px;"></div>
+    </form>
+    <a href="../dashboard.html" style="display:inline-block; margin-top:20px;">← Volver</a>
+  </div>
+</div>
+<script>
+  const liderId = localStorage.getItem('liderId');
+  if (!liderId) window.location.href = 'login.html';
+
+  document.getElementById('donacionForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    data.registrado_por = liderId;
+    // Asegurar que beneficiarios_estimados sea número
+    if (data.beneficiarios_estimados === '') data.beneficiarios_estimados = null;
+
+    const res = await fetch('../api/donaciones.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    const result = await res.json();
+    document.getElementById('mensaje').textContent = result.message;
+    if (result.success) e.target.reset();
+  });
+  const urlParams = new URLSearchParams(window.location.search);
+const idEditar = urlParams.get('id');
+if (idEditar) {
+  fetch(`../api/donaciones.php?id=${idEditar}`)
+    .then(res => res.json())
+    .then(d => {
+      document.querySelector('[name="nombre_donante"]').value = d.nombre_donante || '';
+      document.querySelector('[name="tipo_donacion"]').value = d.tipo_donacion;
+      document.querySelector('[name="cantidad"]').value = d.cantidad;
+      // ... completar todos los campos
+      // Cambiar el action del form para PUT
+    });
+}
+</script>
+</body>
+</html>

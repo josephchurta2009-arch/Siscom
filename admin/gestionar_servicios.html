@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestionar Servicios | Panel Líder</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #f3f4f6; margin:0; display:flex; }
+    .sidebar { width:260px; background:#0f766e; color:white; min-height:100vh; padding:24px 16px; position:fixed; }
+    .sidebar nav a { display:block; color:#e0f2fe; text-decoration:none; padding:12px 16px; border-radius:8px; margin-bottom:6px; font-weight:500; }
+    .sidebar nav a:hover, .sidebar nav a.active { background:#0a5c55; color:white; }
+    .main-content { margin-left:260px; padding:32px 40px; width:calc(100% - 260px); }
+    .header-actions { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+    .btn { background:#0f766e; color:white; border:none; padding:10px 20px; border-radius:30px; cursor:pointer; }
+    .service-list { background:white; border-radius:16px; padding:20px; margin-bottom:30px; }
+    .service-item { display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e5e7eb; }
+    .form-card { background:white; border-radius:16px; padding:24px; }
+    #map { height:300px; width:100%; border-radius:12px; margin:20px 0; }
+    .coordinates { display:flex; gap:10px; }
+  </style>
+</head>
+<body>
+<div class="sidebar">
+  <div class="logo">🌱 Panel Líder</div>
+  <nav>
+    <a href="../dashboard.html">📊 Dashboard</a>
+    <a href="registrar_habitante.html">👥 Habitante</a>
+    <a href="registrar_donacion.html">🎁 Donación</a>
+    <a href="gestionar_servicios.html" class="active">📍 Servicios</a>
+    <a href="generar_informe.html">📄 Informe</a>
+  </nav>
+</div>
+<div class="main-content">
+  <div class="header-actions">
+    <h2>📍 Gestión de Servicios Comunitarios</h2>
+    <button class="btn" id="toggleFormBtn">➕ Agregar nuevo servicio</button>
+  </div>
+
+  <!-- Lista de servicios -->
+  <div class="service-list" id="serviceList">
+    <p>Cargando servicios...</p>
+  </div>
+
+  <!-- Formulario (oculto inicialmente) -->
+  <div class="form-card" id="serviceForm" style="display:none;">
+    <h3 id="formTitle">Agregar Servicio</h3>
+    <form id="servicioForm">
+      <input type="hidden" id="servicioId">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+        <div><label>Nombre *</label><input type="text" id="nombre" required></div>
+        <div><label>Tipo *</label>
+          <select id="tipo"><option>comedor</option><option>centro_acopio</option><option>ollas_comunitarias</option><option>huerta</option><option>otro</option></select>
+        </div>
+        <div class="full-width"><label>Dirección *</label><input type="text" id="direccion" required></div>
+        <div><label>Horario</label><input type="text" id="horario" placeholder="ej: L-V 8am-2pm"></div>
+        <div><label>Teléfono</label><input type="text" id="telefono"></div>
+        <div class="full-width"><label>Descripción</label><textarea id="descripcion" rows="2"></textarea></div>
+        <div><label>Activo</label><select id="activo"><option value="1">Sí</option><option value="0">No</option></select></div>
+      </div>
+      <!-- Mapa para seleccionar ubicación -->
+      <label>Selecciona la ubicación en el mapa:</label>
+      <div id="map"></div>
+      <div class="coordinates">
+        <input type="text" id="latitud" placeholder="Latitud" readonly required>
+        <input type="text" id="longitud" placeholder="Longitud" readonly required>
+      </div>
+      <button type="submit" class="btn" style="margin-top:16px;">Guardar</button>
+      <button type="button" id="cancelFormBtn" style="margin-left:12px;">Cancelar</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  const liderId = localStorage.getItem('liderId');
+  if (!liderId) window.location.href = 'login.html';
+
+  // Cargar Google Maps (debes reemplazar TU_API_KEY)
+  let map, marker;
+  function initMap() {
+    const defaultPos = { lat: 4.60971, lng: -74.08175 }; // Bogotá
+    map = new google.maps.Map(document.getElementById('map'), {
+      center: defaultPos, zoom: 13
+    });
+    marker = new google.maps.Marker({ position: defaultPos, map: map, draggable: true });
+    marker.addListener('dragend', () => {
+      const pos = marker.getPosition();
+      document.getElementById('latitud').value = pos.lat();
+      document.getElementById('longitud').value = pos.lng();
+    });
+    map.addListener('click', (e) => {
+      marker.setPosition(e.latLng);
+      document.getElementById('latitud').value = e.latLng.lat();
+      document.getElementById('longitud').value = e.latLng.lng();
+    });
+  }
+
+  // Cargar script de Google Maps dinámicamente
+  function loadGoogleMaps() {
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=TU_API_KEY&callback=initMap`;
+    script.defer = true;
+    document.head.appendChild(script);
+  }
+  loadGoogleMaps();
+
+  // Funciones CRUD
+  async function cargarServicios() {
+    const res = await fetch(`../api/servicios.php?lider_id=${liderId}`);
+    const data = await res.json();
+    const container = document.getElementById('serviceList');
+    if (data.length === 0) {
+      container.innerHTML = '<p>No hay servicios registrados.</p>';
+      return;
+    }
+    container.innerHTML = data.map(s => `
+      <div class="service-item">
+        <div><strong>${s.nombre}</strong> (${s.tipo})<br>${s.direccion}</div>
+        <div>
+          <button onclick="editarServicio(${s.id})">✏️</button>
+          <button onclick="eliminarServicio(${s.id})">🗑️</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.editarServicio = async (id) => {
+    const res = await fetch(`../api/servicios.php?id=${id}`);
+    const s = await res.json();
+    document.getElementById('servicioId').value = s.id;
+    document.getElementById('nombre').value = s.nombre;
+    document.getElementById('tipo').value = s.tipo;
+    document.getElementById('direccion').value = s.direccion;
+    document.getElementById('horario').value = s.horario || '';
+    document.getElementById('telefono').value = s.telefono || '';
+    document.getElementById('descripcion').value = s.descripcion || '';
+    document.getElementById('activo').value = s.activo ? '1' : '0';
+    document.getElementById('latitud').value = s.latitud || '';
+    document.getElementById('longitud').value = s.longitud || '';
+    if (s.latitud && s.longitud) {
+      const pos = { lat: parseFloat(s.latitud), lng: parseFloat(s.longitud) };
+      marker.setPosition(pos);
+      map.setCenter(pos);
+    }
+    document.getElementById('formTitle').textContent = 'Editar Servicio';
+    document.getElementById('serviceForm').style.display = 'block';
+  };
+
+  window.eliminarServicio = async (id) => {
+    if (!confirm('¿Eliminar este servicio?')) return;
+    await fetch(`../api/servicios.php?id=${id}`, { method: 'DELETE' });
+    cargarServicios();
+  };
+
+  document.getElementById('toggleFormBtn').addEventListener('click', () => {
+    document.getElementById('servicioForm').style.display = 'block';
+    document.getElementById('servicioId').value = '';
+    document.getElementById('servicioForm').reset();
+    document.getElementById('formTitle').textContent = 'Agregar Servicio';
+    marker.setPosition({ lat: 4.60971, lng: -74.08175 });
+  });
+
+  document.getElementById('cancelFormBtn').addEventListener('click', () => {
+    document.getElementById('serviceForm').style.display = 'none';
+  });
+
+  document.getElementById('servicioForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('servicioId').value;
+    const data = {
+      nombre: document.getElementById('nombre').value,
+      tipo: document.getElementById('tipo').value,
+      direccion: document.getElementById('direccion').value,
+      latitud: document.getElementById('latitud').value,
+      longitud: document.getElementById('longitud').value,
+      horario: document.getElementById('horario').value,
+      telefono: document.getElementById('telefono').value,
+      descripcion: document.getElementById('descripcion').value,
+      activo: document.getElementById('activo').value,
+      creado_por: liderId
+    };
+    const method = id ? 'PUT' : 'POST';
+    const url = id ? `../api/servicios.php?id=${id}` : '../api/servicios.php';
+    const res = await fetch(url, {
+      method, headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    const result = await res.json();
+    alert(result.message);
+    if (result.success) {
+      document.getElementById('serviceForm').style.display = 'none';
+      cargarServicios();
+    }
+  });
+
+  cargarServicios();
+</script>
+</body>
+</html>
